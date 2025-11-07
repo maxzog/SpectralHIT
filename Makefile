@@ -1,6 +1,6 @@
 # Compiler and flags
 FC = gfortran
-FFLAGS = -J./obj -I./obj -I$(FFTW_DIR)/include -L$(FFTW_DIR)/lib -lfftw3 -lm -Wall
+FFLAGS = -O3 -march=native -J./obj -I./obj -I$(FFTW_DIR)/include -L$(FFTW_DIR)/lib -lfftw3 -lgomp -lm -Wall -ffast-math -fopenmp
 
 # Directories
 SRC_DIR = ./src

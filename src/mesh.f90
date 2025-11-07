@@ -32,7 +32,6 @@ module grid_class
    contains
 
    function constructor(Nx,Ny,Nz,Lx,Ly,Lz) result(self)
-      use spectral, only: get_kv
       implicit none
       type(grid) :: self
       real(8), optional :: Ly, Lz
@@ -83,14 +82,14 @@ module grid_class
       if (self%dim.gt.1) allocate(self%yv(1:self%Ny+1))
       if (self%dim.gt.2) allocate(self%zv(1:self%Nz+1))
 
-      allocate(self%k1v(1:self%Nx)); self%k1v=get_kv(self%Nx)
+      allocate(self%k1v(1:self%Nx)); self%k1v=0 
       if (self%dim.gt.1) then
          allocate(self%k2v(1:self%Ny))
-         self%k2v=get_kv(self%Ny)
+         self%k2v=0
       end if
       if (self%dim.gt.2) then
          allocate(self%k3v(1:self%Nz))
-         self%k3v=get_kv(self%Nz)
+         self%k3v=0
       end if
 
       do i=1,self%Nx+1

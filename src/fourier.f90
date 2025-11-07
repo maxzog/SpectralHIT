@@ -44,6 +44,52 @@ module spectral
          end do
       end function compute_spectrum
 
+      ! Compute the radial energy spectrum of 3D arr
+      subroutine compute_radial_spectrum(arr, mesh, out, axis)
+         use grid_class, only: grid
+         implicit none
+         class(grid), intent(in) :: mesh
+         double complex, dimension(:,:,:,:), intent(in) :: arr
+         real(8), dimension(:), intent(inout) :: out, axis
+         integer, dimension(:), allocatable :: counts
+         real(8) :: kv(3),dk,kmag
+         integer :: i,j,k,nbins,ind
+
+         out=0.0d0
+         nbins=size(out)
+
+         ! Allocate counter 
+         allocate(counts(1:nbins)); counts=0
+
+         ! Compute bin properties
+         kv=[real(mesh%nx/2+1, 8), real(mesh%ny/2+1,8), real(mesh%nz/2+1,8)]
+         kmag=norm2(kv)
+         dk=kmag/nbins
+
+         ! Compute spectrum
+         do k=1,mesh%Nz
+            do j=1,mesh%Ny
+               do i=1,mesh%Nx
+                  kv = [mesh%k1v(i),mesh%k2v(j),mesh%k3v(k)]
+                  kmag = norm2(kv)
+                  if (kmag.lt.10.0d0*epsilon(1.0d0)) cycle
+                  ind = ceiling(kmag/dk)
+                  out(ind) = out(ind) + REAL(arr(1,i,j,k)*conjg(arr(1,i,j,k))) & 
+                           &          + REAL(arr(2,i,j,k)*conjg(arr(2,i,j,k))) & 
+                           &          + REAL(arr(3,i,j,k)*conjg(arr(3,i,j,k)))
+                  counts(ind) = counts(ind) + 1
+               end do
+            end do
+         end do
+
+         ! Create axis (for plotting) 
+         do i=1,nbins
+            axis(i)=dk*(i-1)
+         end do
+
+         deallocate(counts)
+      end subroutine compute_radial_spectrum
+
       !> ONE-DIMENSIONAL ROUTINES
       ! Subroutine that computes the one-dimensional Fourier transform
       subroutine FFT_1D(in, out, rank0)
@@ -176,6 +222,8 @@ module spectral
          call fftw_execute_dft(plan, in, out)
          ! Normalize
          out = out/(rank0*rank1*rank2)
+         ! Cleanup
+         call fftw_destroy_plan(plan)
       end subroutine FFT_3D
 
       ! Subroutine that computes the three-dimensional Fourier transform
@@ -189,6 +237,8 @@ module spectral
          plan=fftw_plan_dft_3d(rank2, rank1, rank0, out, in, FFTW_BACKWARD, FFTW_ESTIMATE)
          ! Execute
          call fftw_execute_dft(plan, out, in)
+         ! Cleanup
+         call fftw_destroy_plan(plan)
       end subroutine iFFT_3D
 
       subroutine initialize_3D(in, w1v, w2v, w3v, rank0, rank1, rank2)
@@ -314,4 +364,24 @@ module spectral
          close(unit)
       end subroutine write_real_array
 
+      ! Routine to write real array (1D of size N) to text file
+      subroutine write_double_array(arr, rank0, filename)
+         implicit none
+         integer(C_INT), intent(in) :: rank0            
+         real(8), dimension(rank0), intent(in) :: arr 
+         character(len=*), intent(in) :: filename  
+         real(8) :: val
+         integer :: line
+         integer :: unit
+      
+         unit = 1  
+         open(unit, file=filename, status='replace', action='write', form='formatted')
+      
+         do line = 1, rank0
+           val = arr(line)
+           write(unit, '(F16.8)') val 
+         end do
+      
+         close(unit)
+      end subroutine write_double_array
 end module spectral
